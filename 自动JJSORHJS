@@ -1,0 +1,241 @@
+-- 服务引用
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TextService = game:GetService("TextService")
+
+-- 拼音数组 (1-100 的大写拼音，无音标)
+local pinyinNumbers = {
+    "YI", "ER", "SAN", "SI", "WU", "LIU", "QI", "BA", "JIU", "SHI",
+    "SHIYI", "SHIER", "SHISAN", "SHISI", "SHIWU", "SHILIU", "SHIQI", "SHIBA", "SHIJIU", "ERSHI",
+    "ERSHIYI", "ERSHIER", "ERSHISAN", "ERSHISI", "ERSHIWU", "ERSHILIU", "ERSHIQI", "ERSHIBA", "ERSHIJIU", "SANSHI",
+    "SANSHIYI", "SANSHIER", "SANSHISAN", "SANSHISI", "SANSHIWU", "SANSHILIU", "SANSHIQI", "SANSHIBA", "SANSHIJIU", "SISHI",
+    "SISHIYI", "SISHIER", "SISHISAN", "SISHISI", "SISHIWU", "SISHILIU", "SISHIQI", "SISHIBA", "SISHIJIU", "WUSHI",
+    "WUSHIYI", "WUSHIER", "WUSHISAN", "WUSHISI", "WUSHIWU", "WUSHILIU", "WUSHIQI", "WUSHIBA", "WUSHIJIU", "LIUSHI",
+    "LIUSHIYI", "LIUSHIER", "LIUSHISAN", "LIUSHISI", "LIUSHIWU", "LIUSHILIU", "LIUSHIQI", "LIUSHIBA", "LIUSHIJIU", "QISHI",
+    "QISHIYI", "QISHIER", "QISHISAN", "QISHISI", "QISHIWU", "QISHILIU", "QISHIQI", "QISHIBA", "QISHIJIU", "BASHI",
+    "BASHIYI", "BASHIER", "BASHISAN", "BASHISI", "BASHIWU", "BASHILIU", "BASHIQI", "BASHIBA", "BASHIJIU", "JIUSHI",
+    "JIUSHIYI", "JIUSHIER", "JIUSHISAN", "JIUSHISI", "JIUSHIWU", "JIUSHILIU", "JIUSHIQI", "JIUSHIBA", "JIUSHIJIU", "YIBAI"
+}
+
+-- 创建UI
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "PinyinSenderUI"
+screenGui.ResetOnSpawn = false
+
+-- 主框架
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 300, 0, 200)
+mainFrame.Position = UDim2.new(0.5, -150, 0.5, -100)
+mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+mainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+mainFrame.BorderSizePixel = 0
+mainFrame.Active = true
+mainFrame.Draggable = true
+
+-- 标题
+local title = Instance.new("TextLabel")
+title.Name = "Title"
+title.Size = UDim2.new(1, 0, 0, 40)
+title.Position = UDim2.new(0, 0, 0, 0)
+title.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+title.Text = "拼音发送器"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextSize = 20
+title.Font = Enum.Font.GothamBold
+
+-- 数量选择标签
+local countLabel = Instance.new("TextLabel")
+countLabel.Name = "CountLabel"
+countLabel.Size = UDim2.new(1, -20, 0, 25)
+countLabel.Position = UDim2.new(0, 10, 0, 50)
+countLabel.BackgroundTransparency = 1
+countLabel.Text = "选择要发送的数量 (1-100):"
+countLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+countLabel.TextSize = 16
+countLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+-- 数量文本框
+local countTextBox = Instance.new("TextBox")
+countTextBox.Name = "CountTextBox"
+countTextBox.Size = UDim2.new(1, -20, 0, 35)
+countTextBox.Position = UDim2.new(0, 10, 0, 80)
+countTextBox.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+countTextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+countTextBox.Text = "10"
+countTextBox.PlaceholderText = "输入1-100的数字"
+countTextBox.TextSize = 18
+countTextBox.ClearTextOnFocus = false
+
+-- 间隔时间标签
+local intervalLabel = Instance.new("TextLabel")
+intervalLabel.Name = "IntervalLabel"
+intervalLabel.Size = UDim2.new(1, -20, 0, 25)
+intervalLabel.Position = UDim2.new(0, 10, 0, 120)
+intervalLabel.BackgroundTransparency = 1
+intervalLabel.Text = "发送间隔 (秒):"
+intervalLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+intervalLabel.TextSize = 16
+intervalLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+-- 间隔时间文本框
+local intervalTextBox = Instance.new("TextBox")
+intervalTextBox.Name = "IntervalTextBox"
+intervalTextBox.Size = UDim2.new(1, -20, 0, 35)
+intervalTextBox.Position = UDim2.new(0, 10, 0, 150)
+intervalTextBox.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+intervalTextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+intervalTextBox.Text = "0.5"
+intervalTextBox.PlaceholderText = "发送间隔时间"
+intervalTextBox.TextSize = 18
+intervalTextBox.ClearTextOnFocus = false
+
+-- 开始按钮
+local startButton = Instance.new("TextButton")
+startButton.Name = "StartButton"
+startButton.Size = UDim2.new(0.5, -15, 0, 40)
+startButton.Position = UDim2.new(0, 10, 1, -50)
+startButton.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
+startButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+startButton.Text = "开始发送"
+startButton.TextSize = 18
+startButton.Font = Enum.Font.GothamBold
+
+-- 停止按钮
+local stopButton = Instance.new("TextButton")
+stopButton.Name = "StopButton"
+stopButton.Size = UDim2.new(0.5, -15, 0, 40)
+stopButton.Position = UDim2.new(0.5, 5, 1, -50)
+stopButton.BackgroundColor3 = Color3.fromRGB(215, 60, 60)
+stopButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+stopButton.Text = "停止"
+stopButton.TextSize = 18
+stopButton.Font = Enum.Font.GothamBold
+
+-- 状态标签
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Name = "StatusLabel"
+statusLabel.Size = UDim2.new(1, -20, 0, 30)
+statusLabel.Position = UDim2.new(0, 10, 0, 180)
+statusLabel.BackgroundTransparency = 1
+statusLabel.Text = "就绪"
+statusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+statusLabel.TextSize = 16
+statusLabel.TextXAlignm
+-- 组装UI
+mainFrame.Parent = screenGui
+title.Parent = mainFrame
+countLabel.Parent = mainFrame
+countTextBox.Parent = mainFrame
+intervalLabel.Parent = mainFrame
+intervalTextBox.Parent = mainFrame
+startButton.Parent = mainFrame
+stopButton.Parent = mainFrame
+statusLabel.Parent = mainFrame
+screenGui.Parent = playerGui
+
+-- 功能变量
+local isSending = false
+local stopRequested = false
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+
+-- 发送消息到聊天
+local function sendChatMessage(message)
+    local replicatedChatStorage = game:GetService("ReplicatedStorage")
+    local defaultChatSystemChatEvents = replicatedChatStorage:FindFirstChild("DefaultChatSystemChatEvents")
+    if defaultChatSystemChatEvents then
+        local sayMessageRequest = defaultChatSystemChatEvents:FindFirstChild("SayMessageRequest")
+        if sayMessageRequest then
+            sayMessageRequest:FireServer(message)
+        end
+    end
+end
+
+-- 跳跃函数
+local function jump()
+    if humanoid and humanoid.FloorMaterial then
+        humanoid.Jump = true
+    end
+end
+-- 主发送函数
+                RunService.Heartbeat:Wait()
+                elapsed = elapsed + RunService.Heartbeat:Wait()
+            end
+            
+            if stopRequested then
+                break
+            end
+        end
+        
+        -- 发送完成消息
+        if not stopRequested then
+            sendChatMessage("DONE")
+            statusLabel.Text = "完成!"
+            statusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+        else
+            statusLabel.Text = "已停止"
+            statusLabel.TextColor3 = Color3.fromRGB(255, 150, 100)
+        end
+        
+        -- 重置状态
+        isSending = false
+        startButton.Active = true
+        startButton.BackgroundTransparency = 0
+        stopButton.Active = false
+        stopButton.BackgroundTransparency = 0.5
+        
+    end)()
+end
+
+-- 停止发送函数
+local function stopSending()
+    if isSending then
+        stopRequested = true
+    end
+end
+
+-- 连接事件
+startButton.MouseButton1Click:Connect(sendPinyinSequence)
+stopButton.MouseButton1Click:Connect(stopSending)
+
+-- 初始禁用停止按钮
+stopButton.Active = false
+stopButton.BackgroundTransparency = 0.5
+
+-- 字符死亡时重置
+player.CharacterAdded:Connect(function(newChar)
+    character = newChar
+    humanoid = newChar:WaitForChild("Humanoid")
+end)
+
+-- 输入验证
+countTextBox.FocusLost:Connect(function()
+    local num = tonumber(countTextBox.Text)
+    if not num or num < 1 or num > 100 then
+        countTextBox.Text = "10"
+    else
+        countTextBox.Text = tostring(math.floor(num))
+    end
+end)
+
+intervalTextBox.FocusLost:Connect(function()
+    local num = tonumber(intervalTextBox.Text)
+    if not num or num < 0.1 or num > 5 then
+        intervalTextBox.Text = "0.5"
+    else
+        intervalTextBox.Text = tostring(math.floor(num * 10) / 10)
+    end
+end)
+-- 隐藏/显示UI的热键
+local UserInputService = game:GetService("UserInputService")
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed and input.KeyCode == Enum.KeyCode.P and UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
+        screenGui.Enabled = not screenGui.Enabled
+    end
+end)
+
+print("拼音发送器已加载! 使用 Ctrl+P 切换UI显示")
